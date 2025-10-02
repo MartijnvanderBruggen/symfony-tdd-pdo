@@ -1,0 +1,18 @@
+# .htaccess for Symfony (public directory)
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Set the RewriteBase if your app is in a subdirectory
+    # RewriteBase /symfony-tdd-pdo/public
+
+    # Redirect to front controller if file/directory does not exist
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteRule ^ index.php [QSA,L]
+</IfModule>
+
+# Deny access to sensitive files
+<Files ".env">
+    Order allow,deny
+    Deny from all
+</Files>
