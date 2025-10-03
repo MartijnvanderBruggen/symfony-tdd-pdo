@@ -10,10 +10,9 @@ class RegisterControllerTest extends WebTestCase
     {
         $client = static::createClient();
         $crawler = $client->request('GET', '/register');
-
         $this->assertResponseIsSuccessful();
         $this->assertSelectorExists('form');
-        $this->assertSelectorExists('input[name="username"]');
-        $this->assertSelectorExists('input[name="password"]');
+        $this->assertSelectorExists('input[name="registration_form[username]"]');
+        $this->assertSelectorExists('input[name="registration_form[plainPassword]"]');
     }
 }
