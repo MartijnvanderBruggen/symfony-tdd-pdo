@@ -40,10 +40,17 @@ class RegistrationController extends AbstractController
             $entityManager->flush();
 
             // generate a signed url and email it to the user
-            $this->emailVerifier->sendEmailConfirmation('app_verify_email', $user,
+            $emailAddress = $user->getEmail();
+            if (null === $emailAddress) {
+                throw new \LogicException('User email must be set before sending confirmation.');
+            }
+
+            $this->emailVerifier->sendEmailConfirmation(
+                'app_verify_email',
+                $user,
                 (new TemplatedEmail())
                     ->from(new Address('pvqkzweq15ud@mockmail.io', 'mockmail'))
-                    ->to((string) $user->getId())
+                    ->to($emailAddress)
                     ->subject('Please Confirm your Email')
                     ->htmlTemplate('registration/confirmation_email.html.twig')
             );

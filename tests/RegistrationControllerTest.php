@@ -38,8 +38,10 @@ class RegistrationControllerTest extends WebTestCase
         self::assertResponseIsSuccessful();
         self::assertPageTitleContains('Register');
 
+
         $this->client->submitForm('Register', [
-            'registration_form[email]' => 'me@example.com',
+            'registration_form[email]' => 'pvqkzweq15ud@mockmail.io',
+            'registration_form[username]' => 'testuser',
             'registration_form[plainPassword]' => 'password',
             'registration_form[agreeTerms]' => true,
         ]);
@@ -56,7 +58,7 @@ class RegistrationControllerTest extends WebTestCase
 
         self::assertCount(1, $messages = $this->getMailerMessages());
         self::assertEmailAddressContains($messages[0], 'from', 'pvqkzweq15ud@mockmail.io');
-        self::assertEmailAddressContains($messages[0], 'to', 'me@example.com');
+        self::assertEmailAddressContains($messages[0], 'to', 'pvqkzweq15ud@mockmail.io');
         self::assertEmailTextBodyContains($messages[0], 'This link will expire in 1 hour.');
 
         // Login the new user
