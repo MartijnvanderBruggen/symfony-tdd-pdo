@@ -1,0 +1,261 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <style>
+        .dashboard-container {
+            max-width: 960px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: #f9fafb;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(15, 23, 42, 0.1);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .dashboard-container h1 {
+            margin-bottom: 0.5rem;
+            font-size: 2rem;
+            color: #1f2937;
+        }
+
+        .dashboard-intro {
+            color: #4b5563;
+            margin-bottom: 1.5rem;
+        }
+
+        .admin-tools {
+            margin-top: 2rem;
+        }
+
+        .dropdown-group label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .dropdown-group select {
+            min-width: 280px;
+            padding: 0.6rem 0.8rem;
+            font-size: 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+        }
+
+        .tool-panels {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 1.5rem;
+        }
+
+        .tool-panel {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 1.5rem;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+        }
+
+        .tool-panel h3 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+            color: #111827;
+        }
+
+        .tool-panel label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 0.4rem;
+        }
+
+        .tool-panel input,
+        .tool-panel textarea {
+            width: 100%;
+            padding: 0.6rem 0.8rem;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+            margin-bottom: 1rem;
+            font-size: 0.95rem;
+            font-family: inherit;
+        }
+
+        .tool-panel button {
+            display: inline-block;
+            padding: 0.6rem 1.2rem;
+            border-radius: 6px;
+            border: none;
+            background-color: #2563eb;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .tool-panel button:disabled {
+            background-color: #93c5fd;
+            cursor: not-allowed;
+        }
+
+        .results-placeholder {
+            min-height: 120px;
+            padding: 1rem;
+            background-color: #f3f4f6;
+            color: #1f2937;
+            border-radius: 6px;
+            border: 1px dashed #cbd5f5;
+            white-space: pre-wrap;
+            font-family: Consolas, Monaco, 'Ubuntu Mono', monospace;
+        }
+
+        .non-admin-message {
+            margin-top: 2rem;
+            padding: 1rem;
+            background-color: #fee2e2;
+            border-radius: 8px;
+            border: 1px solid #fecaca;
+            color: #991b1b;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    {% set is_admin = is_granted('ROLE_ADMIN') %}
+    <div id="dashboard-app"
+         class="dashboard-container"
+         data-is-admin="{{ is_admin ? 'true' : 'false' }}"
+         ng-app="dashboardApp"
+         ng-controller="DashboardController as vm">
+        <h1>Dashboard</h1>
+        <p class="dashboard-intro">
+            Welcome back, {{ app.user.username ?? 'user' }}. Manage your workspace and monitor security status from here.
+        </p>
+
+        <div class="admin-tools" ng-if="vm.isAdmin">
+            <div class="dropdown-group">
+                <label for="security-tool">Security Automation Tools</label>
+                <select id="security-tool"
+                        ng-model="vm.selectedTool"
+                        ng-options="tool as tool.label for tool in vm.tools"
+                        ng-change="vm.onToolChange()">
+                    <option value="">Select a tool</option>
+                </select>
+            </div>
+
+            <div class="tool-panels" ng-if="vm.selectedTool">
+                <div class="tool-panel">
+                    <h3>Tool Settings &amp; Attributes</h3>
+                    <p class="tool-description">[[ vm.selectedTool.description ]]</p>
+
+                    <label for="tool-target">Target (IP / Host)</label>
+                    <input id="tool-target"
+                           type="text"
+                           placeholder="e.g. 192.168.0.42"
+                           ng-model="vm.toolConfig.target">
+
+                    <label for="tool-flags">Tool Flags / Options</label>
+                    <textarea id="tool-flags"
+                              rows="4"
+                              placeholder="Add command-line flags, one per line"
+                              ng-model="vm.toolConfig.flags"></textarea>
+
+                    <button type="button"
+                            ng-click="vm.runTool()"
+                            ng-disabled="vm.isRunning || !vm.toolConfig.target">
+                        [[ vm.isRunning ? 'Running...' : 'Run Scan' ]]
+                    </button>
+                </div>
+
+                <div class="tool-panel">
+                    <h3>Execution Results</h3>
+                    <div class="results-placeholder">
+                        <span ng-if="vm.isRunning">Executing [[ vm.selectedTool.label ]]&hellip;</span>
+                        <span ng-if="!vm.isRunning && !vm.results">Results will appear here once the scan completes.</span>
+                        <pre ng-if="!vm.isRunning && vm.results">[[ vm.results ]]</pre>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="non-admin-message" ng-if="!vm.isAdmin">
+            <strong>Limited access:</strong> You do not have permission to run automated security tooling. Please contact an administrator if you believe this is an error.
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js" integrity="sha384-mCfAww/wCG3+w22VbXZeXbq1yIXLwZ74F9vAehpKrpoGO8E7xraQ/0D52uIAIgyc" crossorigin="anonymous"></script>
+    <script>
+        (function () {
+            'use strict';
+
+            angular.module('dashboardApp', [])
+                .config(['$interpolateProvider', function ($interpolateProvider) {
+                    $interpolateProvider.startSymbol('[[');
+                    $interpolateProvider.endSymbol(']]');
+                }])
+                .controller('DashboardController', ['$timeout', function ($timeout) {
+                    var vm = this;
+                    var root = document.getElementById('dashboard-app');
+
+                    vm.isAdmin = root?.dataset?.isAdmin === 'true';
+                    vm.tools = [
+                        {
+                            id: 'net_mapper',
+                            label: 'Network Mapper',
+                            description: 'Scan an IP range for open ports and exposed services.'
+                        },
+                        {
+                            id: 'vulnerability_probe',
+                            label: 'Vulnerability Probe',
+                            description: 'Run automated checks against known CVEs, misconfigurations, and best-practice gaps.'
+                        },
+                        {
+                            id: 'tls_inspector',
+                            label: 'TLS Inspector',
+                            description: 'Audit TLS/SSL endpoints for certificate hygiene, cipher strength, and protocol support.'
+                        }
+                    ];
+
+                    vm.selectedTool = null;
+                    vm.toolConfig = {
+                        target: '',
+                        flags: ''
+                    };
+                    vm.results = '';
+                    vm.isRunning = false;
+
+                    vm.onToolChange = function () {
+                        vm.toolConfig = {
+                            target: '',
+                            flags: ''
+                        };
+                        vm.results = '';
+                        vm.isRunning = false;
+                    };
+
+                    vm.runTool = function () {
+                        if (!vm.selectedTool || !vm.toolConfig.target) {
+                            return;
+                        }
+
+                        vm.isRunning = true;
+                        vm.results = '';
+
+                        $timeout(function () {
+                            vm.isRunning = false;
+                            vm.results =
+                                'Tool: ' + vm.selectedTool.label + '\n' +
+                                'Target: ' + vm.toolConfig.target + '\n' +
+                                'Flags: ' + (vm.toolConfig.flags || 'none') + '\n\n' +
+                                'This is a simulated report. Integrate your preferred scanning engine\n' +
+                                'to populate real results here.';
+                        }, 1200);
+                    };
+                }]);
+        })();
+    </script>
+{% endblock %}

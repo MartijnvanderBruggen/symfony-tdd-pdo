@@ -2,6 +2,7 @@
 
 namespace App\Tests;
 
+use App\Entity\User;
 use App\Repository\UserRepository;
 use Doctrine\ORM\EntityManager;
 use Symfony\Bridge\Twig\Mime\TemplatedEmail;
@@ -50,6 +51,7 @@ class RegistrationControllerTest extends WebTestCase
         // self::assertResponseRedirects('/');  @TODO: set the appropriate path that the user is redirected to.
         self::assertCount(1, $this->userRepository->findAll());
         self::assertFalse(($user = $this->userRepository->findAll()[0])->isVerified());
+        self::assertContains(User::ROLE_USER, $user->getRoles());
 
         // Ensure the verification email was sent
         // Use either assertQueuedEmailCount() || assertEmailCount() depending on your mailer setup

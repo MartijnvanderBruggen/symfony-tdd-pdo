@@ -14,6 +14,9 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[UniqueEntity(fields: ['username'], message: 'There is already an account with this username')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    public const ROLE_USER = 'ROLE_USER';
+    public const ROLE_ADMIN = 'ROLE_ADMIN';
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
@@ -29,7 +32,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var list<string> The user roles
      */
     #[ORM\Column]
-    private array $roles = [];
+    private array $roles = [self::ROLE_USER];
 
     /**
      * @var string The hashed password
@@ -83,11 +86,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function getRoles(): array
     {
-        $roles = $this->roles;
-        // guarantee every user at least has ROLE_USER
-        $roles[] = 'ROLE_USER';
-
-        return array_unique($roles);
+        return $this->roles;
     }
 
     /**
@@ -95,7 +94,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      */
     public function setRoles(array $roles): static
     {
-        $this->roles = $roles;
+        $roles[] = self::ROLE_USER;
+        $this->roles = array_values(array_unique($roles));
 
         return $this;
     }
