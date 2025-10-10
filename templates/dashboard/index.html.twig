@@ -30,6 +30,38 @@
             margin-top: 2rem;
         }
 
+        .step-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .step-button {
+            flex: 1 1 180px;
+            min-width: 140px;
+            border: 1px solid #cbd5f5;
+            border-radius: 9999px;
+            padding: 0.5rem 0.9rem;
+            background-color: #e0e7ff;
+            color: #1e3a8a;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.2s ease;
+        }
+
+        .step-button:hover {
+            background-color: #c7d2fe;
+            transform: translateY(-1px);
+        }
+
+        .step-button.active {
+            background-color: #2563eb;
+            color: #ffffff;
+            border-color: #1d4ed8;
+            box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+        }
+
         .dropdown-group label {
             display: block;
             font-weight: 600;
@@ -42,6 +74,20 @@
             font-size: 1rem;
             border: 1px solid #d1d5db;
             border-radius: 6px;
+        }
+
+        .step-helper {
+            color: #4b5563;
+            margin-bottom: 1rem;
+        }
+
+        .step-summary {
+            margin-bottom: 1.25rem;
+            background-color: #eef2ff;
+            border-left: 4px solid #4338ca;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            color: #312e81;
         }
 
         .tool-panels {
@@ -118,11 +164,15 @@
             border: 1px solid #fecaca;
             color: #991b1b;
         }
+
+        [ng-cloak] {
+            display: none !important;
+        }
     </style>
 {% endblock %}
 
 {% block body %}
-    {% set is_admin = is_granted('ROLE_ADMIN') %}
+    {% set is_admin = is_granted('ROLE_USER_ADMIN') %}
     <div id="dashboard-app"
          class="dashboard-container"
          data-is-admin="{{ is_admin ? 'true' : 'false' }}"
@@ -134,20 +184,38 @@
         </p>
 
         <div class="admin-tools" ng-if="vm.isAdmin">
+            <p class="step-helper" ng-if="!vm.activeStep">Select a pen test phase to explore supporting tools.</p>
+            <div class="step-buttons" role="group" aria-label="Penetration testing phases">
+                <button type="button"
+                        class="step-button"
+                        ng-repeat="step in vm.steps"
+                        ng-class="{'active': vm.activeStep && vm.activeStep.id === step.id}"
+                        ng-click="vm.selectStep(step)"
+                        ng-bind="step.label">
+                </button>
+            </div>
+
+            <div class="step-summary" ng-if="vm.activeStep" ng-cloak>
+                <strong ng-bind="vm.activeStep.label"></strong><br>
+                <span ng-bind="vm.activeStep.summary"></span>
+            </div>
+
             <div class="dropdown-group">
                 <label for="security-tool">Security Automation Tools</label>
                 <select id="security-tool"
                         ng-model="vm.selectedTool"
-                        ng-options="tool as tool.label for tool in vm.tools"
+                        ng-options="tool as tool.label for tool in vm.filteredTools"
+                        ng-disabled="!vm.activeStep"
                         ng-change="vm.onToolChange()">
-                    <option value="">Select a tool</option>
+                    <option value=""
+                            ng-bind="vm.activeStep ? 'Select a tool' : 'Select a step first'"></option>
                 </select>
             </div>
 
             <div class="tool-panels" ng-if="vm.selectedTool">
                 <div class="tool-panel">
                     <h3>Tool Settings &amp; Attributes</h3>
-                    <p class="tool-description">[[ vm.selectedTool.description ]]</p>
+                    <p class="tool-description" ng-bind="vm.selectedTool.description"></p>
 
                     <label for="tool-target">Target (IP / Host)</label>
                     <input id="tool-target"
@@ -164,16 +232,18 @@
                     <button type="button"
                             ng-click="vm.runTool()"
                             ng-disabled="vm.isRunning || !vm.toolConfig.target">
-                        [[ vm.isRunning ? 'Running...' : 'Run Scan' ]]
+                        <span ng-bind="vm.isRunning ? 'Running...' : 'Run Scan'"></span>
                     </button>
                 </div>
 
                 <div class="tool-panel">
                     <h3>Execution Results</h3>
                     <div class="results-placeholder">
-                        <span ng-if="vm.isRunning">Executing [[ vm.selectedTool.label ]]&hellip;</span>
+                        <span ng-if="vm.isRunning"
+                              ng-bind="'Executing ' + vm.selectedTool.label + '...'"></span>
                         <span ng-if="!vm.isRunning && !vm.results">Results will appear here once the scan completes.</span>
-                        <pre ng-if="!vm.isRunning && vm.results">[[ vm.results ]]</pre>
+                        <pre ng-if="!vm.isRunning && vm.results"
+                             ng-bind="vm.results"></pre>
                     </div>
                 </div>
             </div>
@@ -187,7 +257,7 @@
 
 {% block javascripts %}
     {{ parent() }}
-    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js" integrity="sha384-mCfAww/wCG3+w22VbXZeXbq1yIXLwZ74F9vAehpKrpoGO8E7xraQ/0D52uIAIgyc" crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.8.3/angular.min.js"></script>
     <script>
         (function () {
             'use strict';
@@ -200,27 +270,174 @@
                 .controller('DashboardController', ['$timeout', function ($timeout) {
                     var vm = this;
                     var root = document.getElementById('dashboard-app');
+                    var isAdminAttr = root && root.dataset ? root.dataset.isAdmin : null;
 
-                    vm.isAdmin = root?.dataset?.isAdmin === 'true';
-                    vm.tools = [
+                    vm.isAdmin = isAdminAttr === 'true';
+                    vm.steps = [
                         {
-                            id: 'net_mapper',
-                            label: 'Network Mapper',
-                            description: 'Scan an IP range for open ports and exposed services.'
+                            id: 'pre_engagement',
+                            order: 0,
+                            label: '0) Pre-engagement',
+                            summary: 'Engagement scoping, note taking, and wordlist preparation before any scanning begins.',
+                            tools: [
+                                { id: 'dradis', label: 'Dradis', description: 'Centralize engagement scope, notes, and evidence for the entire team.' },
+                                { id: 'faraday', label: 'Faraday', description: 'Collaborative vulnerability management and reporting platform.' },
+                                { id: 'serpico', label: 'Serpico', description: 'Automate pen test report generation with reusable templates.' },
+                                { id: 'ghostwriter', label: 'Ghostwriter', description: 'Manage tasks, scope, and reporting for offensive security engagements.' },
+                                { id: 'seclists', label: 'SecLists', description: 'Comprehensive collection of discovery payloads, wordlists, and fuzzing templates.' },
+                                { id: 'rockyou', label: 'rockyou.txt', description: 'Battle-tested password wordlist for authentication testing.' }
+                            ]
                         },
                         {
-                            id: 'vulnerability_probe',
-                            label: 'Vulnerability Probe',
-                            description: 'Run automated checks against known CVEs, misconfigurations, and best-practice gaps.'
+                            id: 'recon_asset_discovery',
+                            order: 1,
+                            label: '1) Recon & Asset Discovery',
+                            summary: 'Discover external assets, DNS information, and alive hosts before deeper testing.',
+                            tools: [
+                                { id: 'amass', label: 'amass', description: 'Enumerate subdomains and map attack surface via passive and active recon.' },
+                                { id: 'subfinder', label: 'subfinder', description: 'Fast passive subdomain discovery using external sources.' },
+                                { id: 'assetfinder', label: 'assetfinder', description: 'Find subdomains and assets from services like crt.sh and Certificate Transparency.' },
+                                { id: 'theharvester', label: 'theHarvester', description: 'Collect emails, subdomains, and hosts from public sources.' },
+                                { id: 'shodan_censys', label: 'Shodan/Censys CLI', description: 'Query internet-facing assets and exposed services from search engines.' },
+                                { id: 'crtsh', label: 'crt.sh (curl)', description: 'Pull certificate transparency data with scripted curl requests.' },
+                                { id: 'waybackurls', label: 'waybackurls', description: 'Gather historical URLs indexed by the Wayback Machine.' },
+                                { id: 'dnsx', label: 'dnsx', description: 'Mass resolve and validate DNS records discovered during recon.' },
+                                { id: 'massdns', label: 'massdns', description: 'Blazing-fast DNS brute forcing and enumeration.' },
+                                { id: 'dig', label: 'dig', description: 'Query DNS records for targeted hosts and zones.' },
+                                { id: 'whois', label: 'whois', description: 'Identify domain ownership and registration metadata.' },
+                                { id: 'naabu', label: 'naabu', description: 'TCP port scanning to quickly detect live services.' },
+                                { id: 'masscan', label: 'masscan', description: 'Internet-scale port scanner for rapid host discovery.' },
+                                { id: 'nmap', label: 'Nmap', description: 'Deep network mapping and service fingerprinting.' },
+                                { id: 'httpx', label: 'httpx', description: 'Probe HTTP services and capture status, title, and tech.' },
+                                { id: 'gowitness', label: 'gowitness', description: 'Automated webpage screenshot capture for discovered hosts.' },
+                                { id: 'eyewitness', label: 'EyeWitness', description: 'Web interface screenshotting and triage.' },
+                                { id: 'aquatone', label: 'Aquatone', description: 'Visual inspection of large numbers of hosts.' },
+                                { id: 'wappalyzer', label: 'Wappalyzer CLI', description: 'Identify technologies and frameworks powering a target site.' },
+                                { id: 'whatweb', label: 'whatweb', description: 'Fingerprint web applications and frameworks via HTTP responses.' }
+                            ]
                         },
                         {
-                            id: 'tls_inspector',
-                            label: 'TLS Inspector',
-                            description: 'Audit TLS/SSL endpoints for certificate hygiene, cipher strength, and protocol support.'
+                            id: 'mapping_content_discovery',
+                            order: 2,
+                            label: '2) Mapping & Content Discovery',
+                            summary: 'Crawl and fuzz target applications to uncover hidden endpoints and parameters.',
+                            tools: [
+                                { id: 'burp_suite', label: 'Burp Suite (Community)', description: 'Intercept traffic, spider applications, and identify surface manually.' },
+                                { id: 'owasp_zap', label: 'OWASP ZAP', description: 'Open-source proxy for mapping applications and performing baseline scans.' },
+                                { id: 'mitmproxy', label: 'mitmproxy', description: 'Interactive HTTPS proxy for inspecting and modifying traffic flows.' },
+                                { id: 'ffuf', label: 'ffuf', description: 'Fast web fuzzer for directories, files, and parameters.' },
+                                { id: 'feroxbuster', label: 'feroxbuster', description: 'Recursive content discovery for directories and files.' },
+                                { id: 'gobuster', label: 'gobuster', description: 'Command-line tool for brute forcing URIs, DNS, and vhosts.' },
+                                { id: 'dirsearch', label: 'dirsearch', description: 'Python-based web path bruteforcer with extensive wordlist support.' },
+                                { id: 'arjun', label: 'arjun', description: 'Discover hidden GET/POST parameters on web endpoints.' },
+                                { id: 'paramspider', label: 'ParamSpider', description: 'Scrape known parameters from third-party sources automatically.' },
+                                { id: 'gau', label: 'gau (getallurls)', description: 'Collect known URLs from multiple archives and APIs.' },
+                                { id: 'waybackurls_mapping', label: 'waybackurls', description: 'Mine archived endpoints for legacy attack surface.' },
+                                { id: 'wpscan', label: 'wpscan', description: 'Enumerate WordPress installations, plugins, and vulnerabilities.' },
+                                { id: 'droopescan', label: 'droopescan', description: 'Audit Drupal CMS for common weaknesses.' },
+                                { id: 'joomscan', label: 'joomscan', description: 'Identify and assess Joomla installations.' }
+                            ]
+                        },
+                        {
+                            id: 'vulnerability_analysis',
+                            order: 3,
+                            label: '3) Vulnerability Analysis',
+                            summary: 'Correlate findings with known vulnerabilities and scan for exposed weaknesses.',
+                            tools: [
+                                { id: 'nuclei', label: 'nuclei', description: 'Template-based scanner for known CVEs and misconfigurations.' },
+                                { id: 'nikto', label: 'Nikto', description: 'Quick checks for common web server issues and misconfigurations.' },
+                                { id: 'testssl', label: 'testssl.sh', description: 'Comprehensive TLS/SSL configuration tester.' },
+                                { id: 'sslscan', label: 'sslscan', description: 'Evaluate SSL/TLS services for protocol and cipher support.' },
+                                { id: 'sslyze', label: 'sslyze', description: 'Fast SSL scanner to evaluate configurations and vulnerabilities.' },
+                                { id: 'retirejs', label: 'Retire.js', description: 'Identify vulnerable JavaScript libraries in use.' },
+                                { id: 'npm_audit', label: 'npm audit', description: 'Check Node.js dependencies for known vulnerabilities.' },
+                                { id: 'pip_audit', label: 'pip-audit', description: 'Scan Python packages for vulnerabilities.' },
+                                { id: 'trufflehog', label: 'trufflehog', description: 'Search repositories for high-entropy secrets and keys.' },
+                                { id: 'gitleaks', label: 'gitleaks', description: 'Detect secrets and sensitive information in git history.' }
+                            ]
+                        },
+                        {
+                            id: 'exploitation_web',
+                            order: 4,
+                            label: '4) Exploitation (Web)',
+                            summary: 'Leverage identified weaknesses to prove exploitability and impact.',
+                            tools: [
+                                { id: 'burp_suite_intruder', label: 'Burp Suite / ZAP', description: 'Use repeater, intruder, and fuzzers for manual exploitation.' },
+                                { id: 'sqlmap', label: 'sqlmap', description: 'Automate SQL injection detection and exploitation.' },
+                                { id: 'dalfox', label: 'dalfox', description: 'Automated XSS scanning with context awareness.' },
+                                { id: 'xsstrike', label: 'XSStrike', description: 'Aggressive XSS detection utility with payload crafting.' },
+                                { id: 'interactsh_client', label: 'interactsh-client', description: 'Out-of-band interaction client for SSRF and OAST testing.' },
+                                { id: 'dnsx_monitor', label: 'dnsx (monitor mode)', description: 'Monitor DNS callbacks during SSRF or blind exploits.' },
+                                { id: 'burp_collaborator', label: 'Burp Collaborator', description: 'Collect out-of-band interactions generated by exploits.' },
+                                { id: 'jwt_tool', label: 'jwt_tool', description: 'Validate and manipulate JWT tokens for auth testing.' },
+                                { id: 'curl_httpie', label: 'curl / httpie', description: 'Script requests to validate auth flows and payloads.' },
+                                { id: 'seclists_payloads', label: 'SecLists (payloads)', description: 'Payload collections for LFI, RCE, and upload exploitation.' },
+                                { id: 'phpggc', label: 'phpggc', description: 'Generate PHP deserialization payloads.' },
+                                { id: 'ysoserial', label: 'ysoserial', description: 'Create gadget chains for Java deserialization exploits.' },
+                                { id: 'hydra', label: 'hydra', description: 'Credential brute forcing with numerous protocol modules.' },
+                                { id: 'ncrack', label: 'ncrack', description: 'High-speed network authentication cracking utility.' },
+                                { id: 'patator', label: 'patator', description: 'Modular brute-force framework with rate limiting controls.' }
+                            ]
+                        },
+                        {
+                            id: 'post_exploitation',
+                            order: 5,
+                            label: '5) Post-Exploitation (Web → Host)',
+                            summary: 'Maintain access, pivot internally, and escalate privileges where permitted.',
+                            tools: [
+                                { id: 'weevely', label: 'Weevely', description: 'PHP-based web shell for short-lived post-exploitation access.' },
+                                { id: 'msfvenom', label: 'msfvenom payloads', description: 'Generate staged payloads for Meterpreter or custom shells.' },
+                                { id: 'chisel', label: 'chisel', description: 'TCP/UDP tunneling for pivoting through constrained networks.' },
+                                { id: 'ligolo', label: 'ligolo-ng', description: 'Reverse tunneling with SOCKS support for internal access.' },
+                                { id: 'sshuttle', label: 'sshuttle', description: 'Proxy remote networks over SSH.' },
+                                { id: 'socat', label: 'socat', description: 'Versatile relay utility for port forwarding and pivots.' },
+                                { id: 'proxychains', label: 'proxychains', description: 'Chain proxied connections through multiple hosts.' },
+                                { id: 'linpeas', label: 'linPEAS', description: 'Enumerate Linux privilege escalation opportunities.' },
+                                { id: 'pspy', label: 'pspy', description: 'Monitor Linux processes without root to spot privilege escalation paths.' },
+                                { id: 'lynis', label: 'lynis', description: 'Security auditing tool for Unix-based systems.' },
+                                { id: 'hashcat', label: 'hashcat', description: 'GPU-accelerated password cracking for recovered hashes.' },
+                                { id: 'john', label: 'John the Ripper', description: 'Versatile CPU-based password cracker.' },
+                                { id: 'nmap_internal', label: 'Nmap (internal)', description: 'Scan internal networks from a foothold.' },
+                                { id: 'naabu_internal', label: 'naabu (internal)', description: 'Rapid port scans from compromised hosts.' },
+                                { id: 'masscan_internal', label: 'masscan (internal)', description: 'Large-scale internal host discovery.' }
+                            ]
+                        },
+                        {
+                            id: 'data_handling',
+                            order: 6,
+                            label: '6) Data Handling & Exfil',
+                            summary: 'Move collected data securely while respecting scope and approval boundaries.',
+                            tools: [
+                                { id: 'scp', label: 'scp', description: 'Securely copy files between hosts over SSH.' },
+                                { id: 'rsync', label: 'rsync', description: 'Synchronize and transfer data efficiently with resume support.' },
+                                { id: 'rclone', label: 'rclone', description: 'Sync data to supported storage services when authorized.' },
+                                { id: 'mysql', label: 'mysql client', description: 'Interact with MySQL/MariaDB databases for validation.' },
+                                { id: 'psql', label: 'psql', description: 'PostgreSQL client for querying and exporting data.' },
+                                { id: 'mongosh', label: 'mongosh', description: 'MongoDB shell for data review and export.' },
+                                { id: 'tar', label: 'tar', description: 'Bundle evidence for transfer or archival.' },
+                                { id: 'zip', label: 'zip', description: 'Compress findings for transport when authorized.' }
+                            ]
+                        },
+                        {
+                            id: 'reporting_debrief',
+                            order: 7,
+                            label: '7) Reporting & Debrief',
+                            summary: 'Compile findings, evidence, and remediation guidance for stakeholders.',
+                            tools: [
+                                { id: 'dradis_reporting', label: 'Dradis', description: 'Organize evidence and generate structured reports.' },
+                                { id: 'faraday_reporting', label: 'Faraday', description: 'Aggregate findings and collaborate with the team.' },
+                                { id: 'serpico_reporting', label: 'Serpico', description: 'Automate final report creation from templated content.' },
+                                { id: 'ghostwriter_reporting', label: 'Ghostwriter', description: 'Track findings, screenshots, and narrative for delivery.' },
+                                { id: 'flameshot', label: 'Flameshot', description: 'Capture annotated screenshots for documentation.' },
+                                { id: 'obsidian_markdown', label: 'Obsidian / Markdown', description: 'Create structured notes and deliverables alongside screenshots.' },
+                                { id: 'burp_zap_exports', label: 'Burp/ZAP exports', description: 'Leverage proxy scan exports for appendices and evidence.' }
+                            ]
                         }
                     ];
 
                     vm.selectedTool = null;
+                    vm.filteredTools = [];
+                    vm.activeStep = null;
                     vm.toolConfig = {
                         target: '',
                         flags: ''
@@ -228,13 +445,24 @@
                     vm.results = '';
                     vm.isRunning = false;
 
-                    vm.onToolChange = function () {
+                    vm.resetToolState = function () {
                         vm.toolConfig = {
                             target: '',
                             flags: ''
                         };
                         vm.results = '';
                         vm.isRunning = false;
+                    };
+
+                    vm.selectStep = function (step) {
+                        vm.activeStep = step;
+                        vm.filteredTools = step && step.tools ? step.tools : [];
+                        vm.selectedTool = null;
+                        vm.resetToolState();
+                    };
+
+                    vm.onToolChange = function () {
+                        vm.resetToolState();
                     };
 
                     vm.runTool = function () {
@@ -248,6 +476,7 @@
                         $timeout(function () {
                             vm.isRunning = false;
                             vm.results =
+                                'Step: ' + (vm.activeStep ? vm.activeStep.label : 'N/A') + '\n' +
                                 'Tool: ' + vm.selectedTool.label + '\n' +
                                 'Target: ' + vm.toolConfig.target + '\n' +
                                 'Flags: ' + (vm.toolConfig.flags || 'none') + '\n\n' +

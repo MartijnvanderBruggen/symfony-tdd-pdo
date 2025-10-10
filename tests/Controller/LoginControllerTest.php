@@ -52,6 +52,7 @@ class LoginControllerTest extends WebTestCase
         $user->setUsername('dashboard_user');
         $user->setEmail('dashboard_user@example.com');
         $user->setIsVerified(true);
+        $user->setRoles([User::ROLE_USER_ADMIN]);
 
         /** @var UserPasswordHasherInterface $passwordHasher */
         $passwordHasher = $container->get(UserPasswordHasherInterface::class);
