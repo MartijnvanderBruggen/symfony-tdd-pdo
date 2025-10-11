@@ -90,36 +90,109 @@
             color: #312e81;
         }
 
-        .tool-panels {
+        .tool-detail-wrapper {
+            margin-top: 1.75rem;
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
             gap: 1.5rem;
-            margin-top: 1.5rem;
         }
 
-        .tool-panel {
+        @media (min-width: 960px) {
+            .tool-detail-wrapper {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        .tool-doc-card,
+        .tool-action-card {
             background: #ffffff;
             border-radius: 10px;
-            padding: 1.5rem;
+            padding: 1.6rem;
             border: 1px solid #e5e7eb;
             box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
         }
 
-        .tool-panel h3 {
-            margin-top: 0;
-            margin-bottom: 1rem;
-            font-size: 1.1rem;
+        .tool-doc-card h3,
+        .tool-action-card h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.15rem;
             color: #111827;
         }
 
-        .tool-panel label {
+        .tool-usage {
+            margin: 1rem 0;
+            padding: 0.75rem 0.9rem;
+            background: #f8fafc;
+            border-left: 4px solid #2563eb;
+            border-radius: 6px;
+            font-family: 'Fira Mono', 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            color: #1e293b;
+            word-break: break-word;
+        }
+
+        .tool-usage span {
+            display: block;
+            font-weight: 600;
+            color: #1d4ed8;
+            margin-bottom: 0.35rem;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .tool-usage code {
+            display: block;
+            white-space: pre-wrap;
+        }
+
+        .tool-parameters {
+            list-style: none;
+            padding: 0;
+            margin: 1rem 0;
+        }
+
+        .tool-parameters li {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+        }
+
+        .tool-parameters strong {
+            font-family: 'Fira Mono', 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            background: #e0e7ff;
+            color: #312e81;
+            border-radius: 9999px;
+            padding: 0.2rem 0.75rem;
+            min-width: 3.5rem;
+            text-align: center;
+        }
+
+        .tool-reference {
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #4c1d95;
+        }
+
+        .tool-action-helper {
+            margin-bottom: 1rem;
+            color: #4b5563;
+        }
+
+        .tool-action-card label {
             display: block;
             font-weight: 600;
             margin-bottom: 0.4rem;
         }
 
-        .tool-panel input,
-        .tool-panel textarea {
+        .execution-notice {
+            display: block;
+            margin-bottom: 0.75rem;
+            color: #6b21a8;
+            font-weight: 600;
+        }
+
+        .tool-action-card input,
+        .tool-action-card textarea {
             width: 100%;
             padding: 0.6rem 0.8rem;
             border-radius: 6px;
@@ -129,8 +202,14 @@
             font-family: inherit;
         }
 
-        .tool-panel button {
-            display: inline-block;
+        .tool-action-card textarea {
+            resize: vertical;
+        }
+
+        .tool-action-card button {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
             padding: 0.6rem 1.2rem;
             border-radius: 6px;
             border: none;
@@ -140,13 +219,14 @@
             cursor: pointer;
         }
 
-        .tool-panel button:disabled {
+        .tool-action-card button:disabled {
             background-color: #93c5fd;
             cursor: not-allowed;
         }
 
-        .results-placeholder {
-            min-height: 120px;
+        .results-block {
+            margin-top: 1.5rem;
+            min-height: 160px;
             padding: 1rem;
             background-color: #f3f4f6;
             color: #1f2937;
@@ -154,6 +234,18 @@
             border: 1px dashed #cbd5f5;
             white-space: pre-wrap;
             font-family: Consolas, Monaco, 'Ubuntu Mono', monospace;
+        }
+
+        .results-block h4 {
+            margin: 0 0 0.75rem 0;
+            font-size: 1rem;
+            color: #1f2937;
+        }
+
+        .results-block pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-break: break-word;
         }
 
         .non-admin-message {
@@ -212,10 +304,34 @@
                 </select>
             </div>
 
-            <div class="tool-panels" ng-if="vm.selectedTool">
-                <div class="tool-panel">
-                    <h3>Tool Settings &amp; Attributes</h3>
-                    <p class="tool-description" ng-bind="vm.selectedTool.description"></p>
+            <div class="tool-detail-wrapper" ng-if="vm.selectedTool" ng-cloak>
+                <div class="tool-doc-card">
+                    <h3 ng-bind="'About ' + vm.selectedTool.label"></h3>
+                    <p ng-bind="vm.selectedToolDoc.summary"></p>
+
+                    <div class="tool-usage" ng-if="vm.selectedToolDoc.usage">
+                        <span>Typical usage</span>
+                        <code ng-bind="vm.selectedToolDoc.usage"></code>
+                    </div>
+
+                    <ul class="tool-parameters" ng-if="vm.selectedToolDoc.parameters.length">
+                        <li ng-repeat="param in vm.selectedToolDoc.parameters">
+                            <strong ng-bind="param.flag"></strong>
+                            <span ng-bind="param.description"></span>
+                        </li>
+                    </ul>
+
+                    <p class="tool-reference" ng-bind="vm.selectedToolDoc.reference"></p>
+                </div>
+
+                <div class="tool-action-card">
+                    <h3 ng-bind="'Activate ' + vm.selectedTool.label"></h3>
+                    <p class="tool-action-helper"
+                       ng-bind="vm.selectedToolDoc.actionHint"></p>
+
+                    <span class="execution-notice"
+                          ng-if="vm.executionNotice"
+                          ng-bind="vm.executionNotice"></span>
 
                     <label for="tool-target">Target (IP / Host)</label>
                     <input id="tool-target"
@@ -232,16 +348,14 @@
                     <button type="button"
                             ng-click="vm.runTool()"
                             ng-disabled="vm.isRunning || !vm.toolConfig.target">
-                        <span ng-bind="vm.isRunning ? 'Running...' : 'Run Scan'"></span>
+                        <span ng-bind="vm.isRunning ? 'Running...' : 'Activate Tool'"></span>
                     </button>
-                </div>
 
-                <div class="tool-panel">
-                    <h3>Execution Results</h3>
-                    <div class="results-placeholder">
+                    <div class="results-block">
+                        <h4>Execution Results</h4>
                         <span ng-if="vm.isRunning"
-                              ng-bind="'Executing ' + vm.selectedTool.label + '...'"></span>
-                        <span ng-if="!vm.isRunning && !vm.results">Results will appear here once the scan completes.</span>
+                              ng-bind="'Running ' + vm.selectedTool.label + '...'"></span>
+                        <span ng-if="!vm.isRunning && !vm.results">Output will appear here after execution.</span>
                         <pre ng-if="!vm.isRunning && vm.results"
                              ng-bind="vm.results"></pre>
                     </div>
@@ -267,7 +381,7 @@
                     $interpolateProvider.startSymbol('[[');
                     $interpolateProvider.endSymbol(']]');
                 }])
-                .controller('DashboardController', ['$timeout', function ($timeout) {
+                .controller('DashboardController', ['$http', function ($http) {
                     var vm = this;
                     var root = document.getElementById('dashboard-app');
                     var isAdminAttr = root && root.dataset ? root.dataset.isAdmin : null;
@@ -435,6 +549,617 @@
                         }
                     ];
 
+                    vm.toolDocs = {
+                        nmap: {
+                            summary: 'Nmap (Network Mapper) is an open source utility for network discovery and security auditing (man nmap).',
+                            usage: 'nmap [ScanType(s)] [Options] <target specification>',
+                            parameters: [
+                                { flag: '-sV', description: 'Probe open ports to identify the service and version information.' },
+                                { flag: '-sC', description: 'Run the default NSE script set for additional reconnaissance.' },
+                                { flag: '-p-', description: 'Scan all TCP ports instead of the 1,000 most common.' }
+                            ],
+                            manual: 'nmap',
+                            reference: 'Source: man nmap (https://nmap.org/book/man.html)',
+                            actionHint: 'Provide a target such as 192.168.0.0/24 and add flags like -sV or -O when deeper enumeration is needed.'
+                        },
+                        masscan: {
+                            summary: 'masscan is a TCP port scanner designed for very high rate Internet-wide surveys (man masscan).',
+                            usage: 'masscan <targets> -p <ports> [options]',
+                            parameters: [
+                                { flag: '--rate', description: 'Control how many packets per second are sent during the scan.' },
+                                { flag: '-p', description: 'Specify individual ports or ranges, e.g. -p1-65535 or -p80,443.' },
+                                { flag: '--excludefile', description: 'Exclude hosts or networks listed in a file.' }
+                            ],
+                            manual: 'masscan',
+                            reference: 'Source: man masscan (https://github.com/robertdavidgraham/masscan#usage)',
+                            actionHint: 'Tune --rate and port ranges to remain within approved bandwidth before activating masscan.'
+                        },
+                        rustscan: {
+                            summary: 'RustScan is a modern TCP port scanner that uses nmap for service detection (https://github.com/RustScan/RustScan).',
+                            usage: 'rustscan -a <target> [options]',
+                            parameters: [
+                                { flag: '-b', description: 'Adjust the batch size for how many ports are scanned concurrently.' },
+                                { flag: '--ulimit', description: 'Set the ulimit value RustScan will attempt before running.' },
+                                { flag: '-t', description: 'Control the timeout in milliseconds for probe responses.' }
+                            ],
+                            reference: 'Source: https://github.com/RustScan/RustScan#usage',
+                            actionHint: 'Use RustScan to quickly identify open ports, then pass results to nmap for deeper enumeration.'
+                        },
+                        amass: {
+                            summary: 'OWASP Amass maps attack surfaces by enumerating DNS assets and network infrastructure (https://github.com/owasp-amass/amass).',
+                            usage: 'amass enum -d <domain> [options]',
+                            parameters: [
+                                { flag: '-active', description: 'Enable active reconnaissance techniques such as DNS bruteforcing.' },
+                                { flag: '-brute', description: 'Perform brute force guessing of subdomains.' },
+                                { flag: '-oA', description: 'Write results to multiple output formats using the supplied prefix.' }
+                            ],
+                            reference: 'Source: https://github.com/owasp-amass/amass#usage',
+                            actionHint: 'Provide a target domain and decide whether to enable active flags like -active based on scope approvals.'
+                        },
+                        subfinder: {
+                            summary: 'subfinder discovers valid subdomains using passive enumeration sources (https://github.com/projectdiscovery/subfinder).',
+                            usage: 'subfinder -d <domain> [options]',
+                            parameters: [
+                                { flag: '-d', description: 'Specify the domain to enumerate.' },
+                                { flag: '-all', description: 'Use all available passive sources even if slower.' },
+                                { flag: '-o', description: 'Write results to the provided output file.' }
+                            ],
+                            reference: 'Source: https://github.com/projectdiscovery/subfinder#usage',
+                            actionHint: 'Combine subfinder results with other discovery tools before moving to active probing.'
+                        },
+                        httpx: {
+                            summary: 'httpx probes HTTP servers to collect meta information such as status codes, titles, and TLS data (https://github.com/projectdiscovery/httpx).',
+                            usage: 'httpx -l <input_file> [options]',
+                            parameters: [
+                                { flag: '-l', description: 'Provide a file containing hosts or URLs to probe.' },
+                                { flag: '-title', description: 'Display HTML title information in the output.' },
+                                { flag: '-status-code', description: 'Show HTTP response status codes for each endpoint.' }
+                            ],
+                            reference: 'Source: https://github.com/projectdiscovery/httpx#running-httpx',
+                            actionHint: 'Feed httpx with a host list from discovery tools and enable the switches that match your data collection goals.'
+                        },
+                        naabu: {
+                            summary: 'naabu is a fast port scanner focused on accuracy and simplicity (https://github.com/projectdiscovery/naabu).',
+                            usage: 'naabu -host <target> [options]',
+                            parameters: [
+                                { flag: '-host', description: 'Set the target host or domain name.' },
+                                { flag: '-p', description: 'Define port lists or ranges, e.g. -p 80,443,8080.' },
+                                { flag: '-rate', description: 'Limit the packets per second to avoid noisy scans.' }
+                            ],
+                            reference: 'Source: https://github.com/projectdiscovery/naabu#usage',
+                            actionHint: 'Start with approved port ranges and adjust -rate to respect bandwidth and IDS limitations.'
+                        },
+                        whatweb: {
+                            summary: 'WhatWeb identifies websites by fingerprinting technologies, servers, and frameworks (man whatweb).',
+                            usage: 'whatweb [options] <target>',
+                            parameters: [
+                                { flag: '-v', description: 'Enable verbose output to include plugin debugging information.' },
+                                { flag: '-a', description: 'Choose aggressive level (1-4) to control intensity.' },
+                                { flag: '--log-json', description: 'Write results as JSON to the supplied file.' }
+                            ],
+                            manual: 'whatweb',
+                            reference: 'Source: man whatweb (https://github.com/urbanadventurer/WhatWeb)',
+                            actionHint: 'Select an aggression level suited to scope and capture output with logging options when documenting findings.'
+                        },
+                        nikto: {
+                            summary: 'Nikto performs comprehensive web server scanning for dangerous files and misconfigurations (https://github.com/sullo/nikto).',
+                            usage: 'nikto -h <target> [options]',
+                            parameters: [
+                                { flag: '-h', description: 'Specify the target host or URL.' },
+                                { flag: '-ssl', description: 'Force SSL mode when targeting HTTPS services.' },
+                                { flag: '-output', description: 'Write scan results to the provided file path.' }
+                            ],
+                            reference: 'Source: https://github.com/sullo/nikto#usage',
+                            actionHint: 'Run Nikto against approved hosts and capture output with -output for reporting.'
+                        },
+                        wpscan: {
+                            summary: 'WPScan audits WordPress installations for vulnerable plugins, themes, and core issues (https://github.com/wpscanteam/wpscan).',
+                            usage: 'wpscan --url <target> [options]',
+                            parameters: [
+                                { flag: '--enumerate', description: 'Enumerate items such as plugins, themes, or users (e.g. --enumerate ap).' },
+                                { flag: '--api-token', description: 'Provide a WPScan API token to enrich vulnerability data.' },
+                                { flag: '--plugins-detection', description: 'Select detection mode (mixed, passive, aggressive).' }
+                            ],
+                            reference: 'Source: https://github.com/wpscanteam/wpscan#usage',
+                            actionHint: 'Set the target URL and choose enumeration switches that comply with scope and rate limits.'
+                        },
+                        gobuster: {
+                            summary: 'Gobuster brute forces URIs, DNS subdomains, and virtual hosts using wordlists (https://github.com/OJ/gobuster).',
+                            usage: 'gobuster dir -u <url> -w <wordlist> [options]',
+                            parameters: [
+                                { flag: '-w', description: 'Path to the wordlist to use.' },
+                                { flag: '-u', description: 'Specify the base URL to brute force.' },
+                                { flag: '-x', description: 'Append file extensions to each guessed path (e.g. -x php,txt).' }
+                            ],
+                            reference: 'Source: https://github.com/OJ/gobuster#usage',
+                            actionHint: 'Select the correct Gobuster mode (dir, dns, vhost) and pair it with an appropriate SecLists wordlist.'
+                        },
+                        ffuf: {
+                            summary: 'ffuf (Fuzz Faster U Fool) is a fast web fuzzer for discovery and enumeration (https://github.com/ffuf/ffuf).',
+                            usage: 'ffuf -u <url> -w <wordlist> [options]',
+                            parameters: [
+                                { flag: '-u', description: 'Target URL containing the FUZZ keyword placeholder.' },
+                                { flag: '-w', description: 'Wordlist file or iterator to use for fuzzing.' },
+                                { flag: '-mc', description: 'Match only specific HTTP status codes (e.g. -mc 200,302).' }
+                            ],
+                            reference: 'Source: https://github.com/ffuf/ffuf#installation-and-usage',
+                            actionHint: 'Embed FUZZ where input should vary and filter responses with -mc or -ms to focus on interesting results.'
+                        },
+                        dirsearch: {
+                            summary: 'dirsearch is a CLI brute force tool for discovering web directories and files (https://github.com/maurosoria/dirsearch).',
+                            usage: 'dirsearch -u <url> [options]',
+                            parameters: [
+                                { flag: '-u', description: 'Specify the target URL.' },
+                                { flag: '-e', description: 'Add extensions to try (e.g. -e php,txt).' },
+                                { flag: '-w', description: 'Override the default wordlist with a custom file.' }
+                            ],
+                            reference: 'Source: https://github.com/maurosoria/dirsearch#usage',
+                            actionHint: 'Point dirsearch at the approved URL and tailor extensions or wordlists for the technology stack.'
+                        },
+                        feroxbuster: {
+                            summary: 'feroxbuster recursively brute forces web content with smart defaults (https://github.com/epi052/feroxbuster).',
+                            usage: 'feroxbuster -u <url> [options]',
+                            parameters: [
+                                { flag: '-u', description: 'Set the starting URL for enumeration.' },
+                                { flag: '-w', description: 'Specify the wordlist used for brute forcing.' },
+                                { flag: '-k', description: 'Disable TLS certificate validation when necessary.' }
+                            ],
+                            reference: 'Source: https://github.com/epi052/feroxbuster#usage',
+                            actionHint: 'Combine feroxbuster recursion with tight scope control by tuning depth, extensions, and status filters.'
+                        },
+                        sqlmap: {
+                            summary: 'sqlmap automates the detection and exploitation of SQL injection flaws (man sqlmap).',
+                            usage: 'sqlmap -u <url> [options]',
+                            parameters: [
+                                { flag: '-u', description: 'Set the target URL containing the vulnerable parameter.' },
+                                { flag: '--risk', description: 'Adjust the risk level (1-3) to balance impact and coverage.' },
+                                { flag: '--dump', description: 'Export database entries when exploitation is authorized.' }
+                            ],
+                            manual: 'sqlmap',
+                            reference: 'Source: man sqlmap (https://github.com/sqlmapproject/sqlmap/wiki/Usage)',
+                            actionHint: 'Start with discovery switches and only escalate to data extraction when you have explicit approval.'
+                        },
+                        hydra: {
+                            summary: 'Hydra performs fast network logon cracking against numerous protocols (man hydra).',
+                            usage: 'hydra -L <userlist> -P <passlist> <target> <service>',
+                            parameters: [
+                                { flag: '-L', description: 'Usernames list to try.' },
+                                { flag: '-P', description: 'Passwords list to try.' },
+                                { flag: '-t', description: 'Number of parallel tasks (default 16).' }
+                            ],
+                            manual: 'hydra',
+                            reference: 'Source: man hydra (https://github.com/vanhauser-thc/thc-hydra)',
+                            actionHint: 'Keep thread counts conservative and ensure credential testing is within the agreed rules of engagement.'
+                        },
+                        ncrack: {
+                            summary: 'Ncrack is a high-speed network authentication cracking tool by the Nmap project (https://nmap.org/ncrack/).',
+                            usage: 'ncrack [options] <service://target>',
+                            parameters: [
+                                { flag: '-U', description: 'Usernames file to test.' },
+                                { flag: '-P', description: 'Passwords file to test.' },
+                                { flag: '-g', description: 'Global timing template to throttle attempts.' }
+                            ],
+                            reference: 'Source: https://nmap.org/ncrack/man.html',
+                            actionHint: 'Use Ncrack when service modules are supported and you need tighter control than Hydra provides.'
+                        },
+                        medusa: {
+                            summary: 'Medusa is a modular logon brute-force tool supporting many services (man medusa).',
+                            usage: 'medusa -h <target> -U <users> -P <passwords> -M <module>',
+                            parameters: [
+                                { flag: '-M', description: 'Select the module/service to attack (e.g. ssh, ftp).' },
+                                { flag: '-U', description: 'Specify a username file.' },
+                                { flag: '-P', description: 'Specify a password file.' }
+                            ],
+                            manual: 'medusa',
+                            reference: 'Source: man medusa (http://foofus.net/goons/jmk/medusa/medusa.html)',
+                            actionHint: 'Pick the correct module for the target service and balance speed vs detection risk with -t.'
+                        },
+                        patator: {
+                            summary: 'Patator is a flexible brute-force framework with modular transports (https://github.com/lanjelot/patator).',
+                            usage: 'patator <module> host=TARGET [options]',
+                            parameters: [
+                                { flag: 'ssh_login', description: 'Example module for SSH authentication testing.' },
+                                { flag: 'user=FILE0', description: 'Feed usernames from FILE0 (set with --0 FILE).' },
+                                { flag: 'password=FILE1', description: 'Feed passwords from FILE1 (set with --1 FILE).' }
+                            ],
+                            reference: 'Source: https://github.com/lanjelot/patator#usage',
+                            actionHint: 'Combine module arguments with Patator\'s FILE placeholders to script precise credential attacks.'
+                        },
+                        seclists: {
+                            summary: 'SecLists is a curated collection of security wordlists (https://github.com/danielmiessler/SecLists).',
+                            usage: 'Refer to wordlists under /usr/share/seclists or the repository structure.',
+                            parameters: [],
+                            reference: 'Source: https://github.com/danielmiessler/SecLists',
+                            actionHint: 'Choose the wordlist category (Discovery, Fuzzing, Credentials) that matches the tool you are about to run.'
+                        },
+                        dalfox: {
+                            summary: 'Dalfox is a fast XSS scanner with context analysis (https://github.com/hahwul/dalfox).',
+                            usage: 'dalfox url <target> [options]',
+                            parameters: [
+                                { flag: 'url', description: 'Run a single target scan.' },
+                                { flag: '-w', description: 'Provide a file of URLs to scan in bulk mode.' },
+                                { flag: '--mass', description: 'Use the mass scanning mode that accepts multiple URLs.' }
+                            ],
+                            reference: 'Source: https://github.com/hahwul/dalfox#usage',
+                            actionHint: 'Confirm XSS testing is permitted and select between single URL and bulk scanning modes before activation.'
+                        },
+                        xsstrike: {
+                            summary: 'XSStrike is an advanced XSS detection suite with payload crafting (https://github.com/s0md3v/XSStrike).',
+                            usage: 'python3 xsstrike.py -u <url> [options]',
+                            parameters: [
+                                { flag: '-u', description: 'Target URL to test.' },
+                                { flag: '--fuzzer', description: 'Enable the intelligent payload fuzzer.' },
+                                { flag: '--crawl', description: 'Automatically crawl the target site before testing.' }
+                            ],
+                            reference: 'Source: https://github.com/s0md3v/XSStrike#usage',
+                            actionHint: 'Start XSStrike with a specific endpoint and consider enabling the crawler only when scope allows it.'
+                        },
+                        interactsh: {
+                            summary: 'Interactsh collects out-of-band interaction callbacks for SSRF and blind vulnerabilities (https://github.com/projectdiscovery/interactsh).',
+                            usage: 'interactsh-client [options]',
+                            parameters: [
+                                { flag: '-o', description: 'Write interaction logs to the given file.' },
+                                { flag: '-c', description: 'Set the server to poll for interactions.' },
+                                { flag: '--token', description: 'Authenticate to self-hosted Interactsh deployments.' }
+                            ],
+                            reference: 'Source: https://github.com/projectdiscovery/interactsh#usage',
+                            actionHint: 'Generate a unique payload URL and monitor callbacks while executing potential SSRF or blind exploit chains.'
+                        },
+                        dnsx: {
+                            summary: 'dnsx performs fast DNS queries and can monitor for records in real time (https://github.com/projectdiscovery/dnsx).',
+                            usage: 'dnsx -d <domain> [options]',
+                            parameters: [
+                                { flag: '-d', description: 'Domain or list to query.' },
+                                { flag: '-l', description: 'File containing domains to resolve.' },
+                                { flag: '-recon', description: 'Enable reconnaissance modules such as DNS records enumeration.' }
+                            ],
+                            reference: 'Source: https://github.com/projectdiscovery/dnsx#usage',
+                            actionHint: 'Use dnsx monitor mode when you expect callbacks from blind interactions and need quick visibility.'
+                        },
+                        jwt_tool: {
+                            summary: 'jwt_tool inspects and manipulates JSON Web Tokens for security testing (https://github.com/ticarpi/jwt_tool).',
+                            usage: 'python3 jwt_tool.py <JWT> [options]',
+                            parameters: [
+                                { flag: '-k', description: 'Supply a key or key file for signature verification.' },
+                                { flag: '-d', description: 'Decode the token and display its header and claims.' },
+                                { flag: '-X k', description: 'Attempt known key brute-force attacks.' }
+                            ],
+                            reference: 'Source: https://github.com/ticarpi/jwt_tool#usage',
+                            actionHint: 'Load the token into jwt_tool and choose verification or attack options appropriate for the engagement.'
+                        },
+                        curl_httpie: {
+                            summary: 'curl and HTTPie are command-line clients for crafting HTTP requests (man curl, https://httpie.io/cli).',
+                            usage: 'curl [options] <URL>  |  http <method> <URL> [items]',
+                            parameters: [
+                                { flag: '-X/--method', description: 'Set the HTTP verb (e.g. -X POST).' },
+                                { flag: '-H/--header', description: 'Add custom headers to the request.' },
+                                { flag: '-d/--data', description: 'Send data in the HTTP request body.' }
+                            ],
+                            manual: 'curl',
+                            reference: 'Sources: man curl and https://httpie.io/cli',
+                            actionHint: 'Use curl for raw scripted requests or HTTPie for readable output when replaying proof-of-concept payloads.'
+                        },
+                        phpggc: {
+                            summary: 'PHPGGC generates PHP object payloads for gadget chain exploits (https://github.com/ambionics/phpggc).',
+                            usage: 'phpggc <chain> [options]',
+                            parameters: [
+                                { flag: '-i', description: 'List available gadget chains.' },
+                                { flag: '-w', description: 'Wrap payloads for specific contexts (e.g. PHAR).' },
+                                { flag: '-p', description: 'Provide parameters required by the selected gadget chain.' }
+                            ],
+                            reference: 'Source: https://github.com/ambionics/phpggc#usage',
+                            actionHint: 'Select the gadget chain matching the target framework and provide needed parameters before generating payloads.'
+                        },
+                        ysoserial: {
+                            summary: 'ysoserial generates payloads for exploiting Java deserialization vulnerabilities (https://github.com/frohoff/ysoserial).',
+                            usage: 'java -jar ysoserial.jar <payload> <command>',
+                            parameters: [
+                                { flag: 'CommonsCollections1', description: 'Example gadget chain often used in testing.' },
+                                { flag: '<command>', description: 'Command that executes upon successful deserialization.' },
+                                { flag: '-o', description: 'Redirect the serialized payload to a file.' }
+                            ],
+                            reference: 'Source: https://github.com/frohoff/ysoserial#usage',
+                            actionHint: 'Match the payload class to the target application libraries and capture the serialized output for delivery.'
+                        },
+                        weevely: {
+                            summary: 'Weevely is a stealthy PHP-based web shell for post-exploitation access (https://github.com/epinna/weevely3).',
+                            usage: 'weevely generate <password> <path>  |  weevely <url> <password>',
+                            parameters: [
+                                { flag: 'generate', description: 'Create a new agent shell file using the supplied password.' },
+                                { flag: 'session', description: 'Reuse a stored session file for future connections.' },
+                                { flag: '--stealth', description: 'Enable stealth modules to evade detection.' }
+                            ],
+                            reference: 'Source: https://github.com/epinna/weevely3#usage',
+                            actionHint: 'Generate agents only when authorized and store session details securely for later interaction.'
+                        },
+                        msfvenom: {
+                            summary: 'msfvenom builds Metasploit Framework payloads in various formats (https://docs.metasploit.com/docs/using-metasploit/intermediate/payloads.html).',
+                            usage: 'msfvenom -p <payload> [options]',
+                            parameters: [
+                                { flag: '-p', description: 'Select the payload module (e.g. linux/x64/shell_reverse_tcp).' },
+                                { flag: 'LHOST', description: 'Set the listener IP for reverse payloads.' },
+                                { flag: 'LPORT', description: 'Set the listening port for reverse payloads.' }
+                            ],
+                            reference: 'Source: Metasploit Framework documentation',
+                            actionHint: 'Choose payloads that align with the target OS and validate listener details before generating binaries.'
+                        },
+                        chisel: {
+                            summary: 'chisel tunnels TCP or UDP traffic over HTTP/WebSocket for pivoting (https://github.com/jpillora/chisel).',
+                            usage: 'chisel server -p <port> [options]  |  chisel client <server> <remote>:<local>',
+                            parameters: [
+                                { flag: 'server', description: 'Run the chisel server that accepts client connections.' },
+                                { flag: 'client', description: 'Connect to a server and establish tunnels.' },
+                                { flag: '--reverse', description: 'Create reverse port forwards from the client back to the server.' }
+                            ],
+                            reference: 'Source: https://github.com/jpillora/chisel#usage',
+                            actionHint: 'Decide which side hosts the server component and document all forwarded ports before enabling tunnels.'
+                        },
+                        ligolo: {
+                            summary: 'ligolo-ng provides agentless tunneling and SOCKS5 proxies for internal pivoting (https://github.com/nicocha30/ligolo-ng).',
+                            usage: 'ligolo-ng proxy  |  ligolo-ng agent -connect <listener>',
+                            parameters: [
+                                { flag: 'proxy', description: 'Launch the operator-side listener.' },
+                                { flag: 'agent', description: 'Start the implant on the compromised host.' },
+                                { flag: '-listen', description: 'Set the proxy listening address or port.' }
+                            ],
+                            reference: 'Source: https://github.com/nicocha30/ligolo-ng#usage',
+                            actionHint: 'Prepare the proxy listener first, then deploy the agent with the approved listener address to pivot traffic.'
+                        },
+                        sshuttle: {
+                            summary: 'sshuttle forwards traffic over SSH to simulate a VPN-like tunnel (https://github.com/sshuttle/sshuttle).',
+                            usage: 'sshuttle -r <user@host> <subnet>/<mask> [options]',
+                            parameters: [
+                                { flag: '-r', description: 'SSH remote gateway in the form user@host.' },
+                                { flag: '-x', description: 'Exclude specific subnets from tunneling.' },
+                                { flag: '--dns', description: 'Proxy DNS requests through the tunnel.' }
+                            ],
+                            reference: 'Source: https://github.com/sshuttle/sshuttle#usage',
+                            actionHint: 'Specify only the approved internal networks and disable DNS proxying if monitoring requires clear separation.'
+                        },
+                        socat: {
+                            summary: 'socat relocates data streams between two endpoints, useful for relays and port forwarding (man socat).',
+                            usage: 'socat <address1> <address2>',
+                            parameters: [
+                                { flag: 'TCP-LISTEN', description: 'Listen on a TCP port and forward connections.' },
+                                { flag: 'EXEC', description: 'Execute a command and pipe stdin/stdout.' },
+                                { flag: 'OPENSSL', description: 'Wrap connections in TLS when supported.' }
+                            ],
+                            manual: 'socat',
+                            reference: 'Source: man socat (http://www.dest-unreach.org/socat/doc/socat.html)',
+                            actionHint: 'Compose socat address strings carefully and confirm listener ports are cleared by the client before launching.'
+                        },
+                        proxychains: {
+                            summary: 'proxychains forces TCP connections to pass through proxies defined in its configuration (man proxychains4).',
+                            usage: 'proxychains4 <command>',
+                            parameters: [
+                                { flag: 'proxychains.conf', description: 'Configuration file containing proxy chain definitions.' },
+                                { flag: '--quiet', description: 'Suppress proxychains status messages.' },
+                                { flag: '-f', description: 'Use an alternate configuration file.' }
+                            ],
+                            manual: 'proxychains4',
+                            reference: 'Source: man proxychains4',
+                            actionHint: 'Update the proxychains configuration with approved relays before executing commands through the tunnel.'
+                        },
+                        linpeas: {
+                            summary: 'linPEAS collects Linux privilege escalation indicators (https://github.com/carlospolop/PEASS-ng).',
+                            usage: 'linpeas.sh [options]',
+                            parameters: [
+                                { flag: '-q', description: 'Enable quiet mode with reduced noise.' },
+                                { flag: '-a', description: 'Run full enumeration including heavy checks.' },
+                                { flag: '-o', description: 'Write output to the specified file.' }
+                            ],
+                            reference: 'Source: https://github.com/carlospolop/PEASS-ng/tree/master/linPEAS',
+                            actionHint: 'Upload linPEAS only when authorized and capture results to a file for later review.'
+                        },
+                        pspy: {
+                            summary: 'pspy monitors Linux processes without requiring root to spot scheduled or privileged tasks (https://github.com/DominicBreuker/pspy).',
+                            usage: './pspy64 [options]',
+                            parameters: [
+                                { flag: '-i', description: 'Set the polling interval in milliseconds.' },
+                                { flag: '-f', description: 'Filter events by command name.' },
+                                { flag: '-r', description: 'Record output to a file.' }
+                            ],
+                            reference: 'Source: https://github.com/DominicBreuker/pspy#usage',
+                            actionHint: 'Run pspy briefly and review its log for high value processes or scripts to investigate further.'
+                        },
+                        lynis: {
+                            summary: 'Lynis executes in-depth security auditing for Unix-like systems (man lynis).',
+                            usage: 'lynis audit system [options]',
+                            parameters: [
+                                { flag: '--tests', description: 'Run only specific test categories.' },
+                                { flag: '--quick', description: 'Skip some tests to speed up execution.' },
+                                { flag: '--report-file', description: 'Write the audit results to a chosen file.' }
+                            ],
+                            manual: 'lynis',
+                            reference: 'Source: man lynis (https://cisofy.com/documentation/lynis/)',
+                            actionHint: 'Coordinate with system owners before launching Lynis and store the resulting audit report securely.'
+                        },
+                        hashcat: {
+                            summary: 'Hashcat is an advanced password recovery utility using CPU and GPU acceleration (https://hashcat.net/hashcat/).',
+                            usage: 'hashcat -m <hash-type> -a <attack-mode> <hashes> <wordlist>',
+                            parameters: [
+                                { flag: '-m', description: 'Select the hash type identifier (e.g. 0 for MD5).' },
+                                { flag: '-a', description: 'Choose attack mode such as 0 (straight) or 3 (mask).' },
+                                { flag: '--rules-file', description: 'Apply transformation rules to wordlists.' }
+                            ],
+                            reference: 'Source: https://hashcat.net/wiki/doku.php?id=hashcat',
+                            actionHint: 'Confirm cracking is authorized and match the hash mode and attack strategy to the data you possess.'
+                        },
+                        john: {
+                            summary: 'John the Ripper is a fast password cracker for many hash formats (https://www.openwall.com/john/).',
+                            usage: 'john --format=<hash> <hashfile>',
+                            parameters: [
+                                { flag: '--wordlist', description: 'Specify a wordlist to use instead of incremental mode.' },
+                                { flag: '--rules', description: 'Enable word mangling rules for the wordlist.' },
+                                { flag: '--show', description: 'Display cracked passwords once available.' }
+                            ],
+                            reference: 'Source: https://www.openwall.com/john/doc/',
+                            actionHint: 'Select the correct hash module and keep cracked credentials encrypted when storing evidence.'
+                        },
+                        scp: {
+                            summary: 'scp securely copies files between hosts over SSH (man scp).',
+                            usage: 'scp [options] <source> <destination>',
+                            parameters: [
+                                { flag: '-r', description: 'Recursively copy directories.' },
+                                { flag: '-P', description: 'Specify the SSH port.' },
+                                { flag: '-i', description: 'Use a specific identity (private key) file.' }
+                            ],
+                            manual: 'scp',
+                            reference: 'Source: man scp',
+                            actionHint: 'Double-check destination paths and ports before copying data gathered during the engagement.'
+                        },
+                        rsync: {
+                            summary: 'rsync synchronizes files efficiently using delta transfers (man rsync).',
+                            usage: 'rsync [options] <source> <destination>',
+                            parameters: [
+                                { flag: '-a', description: 'Archive mode; preserves permissions, times, and symlinks.' },
+                                { flag: '-z', description: 'Compress file data during the transfer.' },
+                                { flag: '--exclude', description: 'Exclude matching files or directories.' }
+                            ],
+                            manual: 'rsync',
+                            reference: 'Source: man rsync',
+                            actionHint: 'Use archive mode for evidence preservation and enable compression when moving large collections securely.'
+                        },
+                        rclone: {
+                            summary: 'rclone manages files on cloud storage providers from the command line (https://rclone.org/).',
+                            usage: 'rclone copy <source> <remote>:<path> [options]',
+                            parameters: [
+                                { flag: 'config', description: 'Define remote backends via rclone config.' },
+                                { flag: '--progress', description: 'Display current transfer progress.' },
+                                { flag: '--transfers', description: 'Control how many files are transferred in parallel.' }
+                            ],
+                            reference: 'Source: https://rclone.org/docs/',
+                            actionHint: 'Ensure remote destinations are approved and configure remotes securely before copying data.'
+                        },
+                        mysql: {
+                            summary: 'The mysql client issues SQL statements to MySQL or MariaDB servers (man mysql).',
+                            usage: 'mysql -u <user> -p -h <host> <database>',
+                            parameters: [
+                                { flag: '-u', description: 'Specify the database user.' },
+                                { flag: '-p', description: 'Prompt for the user password.' },
+                                { flag: '-e', description: 'Execute the supplied query non-interactively.' }
+                            ],
+                            manual: 'mysql',
+                            reference: 'Source: man mysql',
+                            actionHint: 'Set the DATABASE_URL credentials correctly and test simple queries before running migrations.'
+                        },
+                        psql: {
+                            summary: 'psql is the interactive terminal for PostgreSQL (man psql).',
+                            usage: 'psql -h <host> -U <user> <database>',
+                            parameters: [
+                                { flag: '-c', description: 'Run a single command string and exit.' },
+                                { flag: '-f', description: 'Execute commands from a file.' },
+                                { flag: '--set', description: 'Assign variables that can be referenced inside SQL scripts.' }
+                            ],
+                            manual: 'psql',
+                            reference: 'Source: man psql',
+                            actionHint: 'Use psql for ad-hoc validation queries and rely on migration tooling for schema changes when possible.'
+                        },
+                        mongosh: {
+                            summary: 'mongosh is the modern MongoDB shell for CRUD operations and scripting (https://www.mongodb.com/docs/mongodb-shell/).',
+                            usage: 'mongosh "mongodb://user:pass@host/db"',
+                            parameters: [
+                                { flag: '--file', description: 'Run commands from a JavaScript file.' },
+                                { flag: '--eval', description: 'Evaluate a JavaScript snippet directly.' },
+                                { flag: '--quiet', description: 'Reduce shell output noise.' }
+                            ],
+                            reference: 'Source: MongoDB Shell documentation',
+                            actionHint: 'Connect with least-privilege credentials and script queries in files for reproducible evidence gathering.'
+                        },
+                        tar: {
+                            summary: 'tar creates and extracts archive files (man tar).',
+                            usage: 'tar -czf <archive.tar.gz> <path>',
+                            parameters: [
+                                { flag: '-c', description: 'Create a new archive.' },
+                                { flag: '-x', description: 'Extract files from an archive.' },
+                                { flag: '-z', description: 'Use gzip compression when reading or writing.' }
+                            ],
+                            manual: 'tar',
+                            reference: 'Source: man tar',
+                            actionHint: 'Archive collected artifacts with tar and include metadata files before final reporting.'
+                        },
+                        zip: {
+                            summary: 'zip packages and compresses files into ZIP archives (man zip).',
+                            usage: 'zip -r <archive.zip> <path>',
+                            parameters: [
+                                { flag: '-r', description: 'Recurse into directories.' },
+                                { flag: '-9', description: 'Use maximum compression.' },
+                                { flag: '-e', description: 'Encrypt the archive and prompt for a password.' }
+                            ],
+                            manual: 'zip',
+                            reference: 'Source: man zip',
+                            actionHint: 'Password-protect archives that contain sensitive evidence before transferring them.'
+                        },
+                        burp: {
+                            summary: 'Burp Suite is an integrated platform for testing web application security (https://portswigger.net/burp).',
+                            usage: 'Launch Burp Suite and configure the proxy or Intruder modules as required.',
+                            parameters: [
+                                { flag: 'Proxy', description: 'Intercept traffic to examine and modify HTTP requests.' },
+                                { flag: 'Intruder', description: 'Automate customized payload attacks against specific parameters.' },
+                                { flag: 'Repeater', description: 'Manually resend requests while tuning payloads.' }
+                            ],
+                            reference: 'Source: https://portswigger.net/burp/documentation',
+                            actionHint: 'Route browser traffic through Burp and stage payloads in Repeater or Intruder depending on the workflow.'
+                        },
+                        zap: {
+                            summary: 'OWASP ZAP is a proxy-based web application scanner for automated and manual testing (https://www.zaproxy.org/).',
+                            usage: 'Start ZAP and configure contexts, scopes, and scanners through the GUI or zap-cli.',
+                            parameters: [
+                                { flag: 'Contexts', description: 'Define target scope and authentication information.' },
+                                { flag: 'Spider', description: 'Crawl the application to discover content.' },
+                                { flag: 'Active Scan', description: 'Launch automated vulnerability tests against in-scope targets.' }
+                            ],
+                            reference: 'Source: https://www.zaproxy.org/docs/',
+                            actionHint: 'Limit ZAP scans to the approved context and monitor alerts to validate findings manually.'
+                        },
+                        dradis: {
+                            summary: 'Dradis centralizes penetration testing notes, evidence, and report generation (https://dradisframework.com/).',
+                            usage: 'Use the Dradis web interface or CLI to create projects and upload findings.',
+                            parameters: [],
+                            reference: 'Source: https://dradisframework.com/support/',
+                            actionHint: 'Create a project per engagement and synchronize notes before exporting the final report.'
+                        },
+                        faraday: {
+                            summary: 'Faraday is a collaborative vulnerability management platform for red teams (https://github.com/infobyte/faraday).',
+                            usage: 'Start the Faraday server and use the client to import tool outputs.',
+                            parameters: [],
+                            reference: 'Source: https://github.com/infobyte/faraday#documentation',
+                            actionHint: 'Import scan results into Faraday to keep findings aligned with team workflows.'
+                        },
+                        serpico: {
+                            summary: 'Serpico streamlines report writing with templated findings (https://github.com/serpicoproject/Serpico).',
+                            usage: 'Run the Serpico application and populate templates with engagement data.',
+                            parameters: [],
+                            reference: 'Source: https://github.com/serpicoproject/Serpico#usage',
+                            actionHint: 'Maintain reusable finding templates and update evidence before exporting final deliverables.'
+                        },
+                        ghostwriter: {
+                            summary: 'Ghostwriter manages offensive security projects, evidence, and reporting (https://github.com/GhostManager/Ghostwriter).',
+                            usage: 'Deploy Ghostwriter and use the web UI to record findings and upload screenshots.',
+                            parameters: [],
+                            reference: 'Source: https://github.com/GhostManager/Ghostwriter#documentation',
+                            actionHint: 'Log each finding with impact and remediation details to streamline final reporting.'
+                        },
+                        flameshot: {
+                            summary: 'Flameshot captures and annotates screenshots on Linux desktops (https://github.com/flameshot-org/flameshot).',
+                            usage: 'flameshot gui [options]',
+                            parameters: [
+                                { flag: 'gui', description: 'Launch the interactive screenshot interface.' },
+                                { flag: '-p', description: 'Set the default save path for captures.' },
+                                { flag: '-c', description: 'Copy the captured image to the clipboard.' }
+                            ],
+                            reference: 'Source: https://github.com/flameshot-org/flameshot#command-line-interface',
+                            actionHint: 'Capture only approved evidence and store annotated screenshots alongside corresponding findings.'
+                        },
+                        obsidian: {
+                            summary: 'Obsidian is a Markdown-based knowledge base for organizing notes (https://obsidian.md/).',
+                            usage: 'Create or sync a vault, then manage notes using Markdown files.',
+                            parameters: [],
+                            reference: 'Source: https://help.obsidian.md/',
+                            actionHint: 'Link notes to screenshots and findings so the final report narrative stays cohesive.'
+                        }
+                    };
+
                     vm.selectedTool = null;
                     vm.filteredTools = [];
                     vm.activeStep = null;
@@ -444,6 +1169,53 @@
                     };
                     vm.results = '';
                     vm.isRunning = false;
+                    vm.selectedToolDoc = null;
+                    vm.executionNotice = '';
+
+                    vm.supportedToolIds = {
+                        nmap: '/api/tools/nmap',
+                        nmap_internal: '/api/tools/nmap'
+                    };
+
+                    var trimTrailingWhitespace = function (value) {
+                        return typeof value === 'string' ? value.replace(/\s+$/, '') : '';
+                    };
+
+                    vm.resolveToolDoc = function (tool) {
+                        if (!tool) {
+                            return null;
+                        }
+
+                        var doc = vm.toolDocs[tool.id];
+                        if (!doc && tool.id.indexOf('_') !== -1) {
+                            var parts = tool.id.split('_');
+                            for (var idx = 0; idx < parts.length; idx++) {
+                                if (vm.toolDocs[parts[idx]]) {
+                                    doc = vm.toolDocs[parts[idx]];
+                                    break;
+                                }
+                            }
+                        }
+
+                        doc = doc || {};
+
+                        var parameters = Array.isArray(doc.parameters) ? doc.parameters : [];
+                        var summary = doc.summary || tool.description || 'Refer to the documentation for details.';
+                        var usage = doc.usage || '';
+                        if (!usage && doc.manual) {
+                            usage = doc.manual + ' [options]';
+                        }
+                        var reference = doc.reference || (doc.manual ? 'See man ' + doc.manual + ' for full documentation.' : 'Consult the project documentation for full usage guidance.');
+                        var actionHint = doc.actionHint || (doc.manual ? 'Use the fields below to build a command. Run `man ' + doc.manual + '` for a complete option list.' : 'Use the fields below to populate parameters and review the project documentation for additional switches.');
+
+                        return {
+                            summary: summary,
+                            usage: usage,
+                            parameters: parameters,
+                            reference: reference,
+                            actionHint: actionHint
+                        };
+                    };
 
                     vm.resetToolState = function () {
                         vm.toolConfig = {
@@ -452,6 +1224,7 @@
                         };
                         vm.results = '';
                         vm.isRunning = false;
+                        vm.executionNotice = '';
                     };
 
                     vm.selectStep = function (step) {
@@ -459,10 +1232,12 @@
                         vm.filteredTools = step && step.tools ? step.tools : [];
                         vm.selectedTool = null;
                         vm.resetToolState();
+                        vm.selectedToolDoc = null;
                     };
 
                     vm.onToolChange = function () {
                         vm.resetToolState();
+                        vm.selectedToolDoc = vm.resolveToolDoc(vm.selectedTool);
                     };
 
                     vm.runTool = function () {
@@ -470,19 +1245,62 @@
                             return;
                         }
 
+                        var endpoint = vm.supportedToolIds[vm.selectedTool.id];
+                        if (!endpoint) {
+                            vm.results = '';
+                            vm.executionNotice = vm.selectedTool.label + ' is not yet wired for live execution.';
+                            return;
+                        }
+
                         vm.isRunning = true;
                         vm.results = '';
+                        vm.executionNotice = '';
 
-                        $timeout(function () {
+                        $http.post(endpoint, {
+                            target: vm.toolConfig.target,
+                            flags: vm.toolConfig.flags
+                        }).then(function (response) {
+                            var data = response.data || {};
+                            var segments = [];
+
+                            if (Array.isArray(data.command)) {
+                                segments.push('Command: ' + data.command.join(' '));
+                            }
+
+                            if (typeof data.exitCode !== 'undefined') {
+                                segments.push('Exit code: ' + data.exitCode);
+                            }
+
+                            if (data.stdout) {
+                                segments.push('Standard Output:\n' + trimTrailingWhitespace(data.stdout));
+                            }
+
+                            if (data.stderr) {
+                                segments.push('Standard Error:\n' + trimTrailingWhitespace(data.stderr));
+                            }
+
+                            vm.results = segments.join('\n\n').trim();
+
+                            if (!vm.results) {
+                                vm.results = 'Command completed but no output was produced.';
+                            }
+                        }).catch(function (errorResponse) {
+                            var data = errorResponse.data || {};
+                            var message = data.error || ('Failed to execute ' + vm.selectedTool.label + '.');
+                            var errorSegments = [message];
+
+                            if (data.stdout) {
+                                errorSegments.push('Standard Output:\n' + trimTrailingWhitespace(data.stdout));
+                            }
+
+                            if (data.stderr) {
+                                errorSegments.push('Standard Error:\n' + trimTrailingWhitespace(data.stderr));
+                            }
+
+                            vm.results = errorSegments.join('\n\n').trim();
+                        }).finally(function () {
                             vm.isRunning = false;
-                            vm.results =
-                                'Step: ' + (vm.activeStep ? vm.activeStep.label : 'N/A') + '\n' +
-                                'Tool: ' + vm.selectedTool.label + '\n' +
-                                'Target: ' + vm.toolConfig.target + '\n' +
-                                'Flags: ' + (vm.toolConfig.flags || 'none') + '\n\n' +
-                                'This is a simulated report. Integrate your preferred scanning engine\n' +
-                                'to populate real results here.';
-                        }, 1200);
+                        });
                     };
                 }]);
         })();
