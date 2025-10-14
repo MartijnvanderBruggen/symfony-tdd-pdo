@@ -1,4 +1,7 @@
-
+.env
+.env.dev
+.end.test
+.editorconfig
 ###> symfony/framework-bundle ###
 /.env.local
 /.env.local.php
